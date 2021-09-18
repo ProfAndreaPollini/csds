@@ -18,6 +18,8 @@
 #include "boids.h"
 #include "perlin.h"
 #include "utils.h"
+#include "steering.h"
+
 int main(void)
 {
     // Initialization
@@ -38,7 +40,7 @@ int main(void)
     boids_add(Vector2Zero());
     boid_t boid={
             .pos = (Vector2){ .x=200,.y=200},
-            .v = Vector2One(),
+            .v = Vector2Rotate(Vector2Normalize(Vector2One()), GetRandomValue(0,359)),
             .a = Vector2Zero()
     };
 
@@ -54,8 +56,19 @@ int main(void)
         //----------------------------------------------------------------------------------
         // TODO: Update your variables here
         //----------------------------------------------------------------------------------
+        Vector2 mousePos = GetMousePosition();
         for (int i = 0; i < boids_count(); ++i) {
-            boid_update(boids_get(i));
+            boid_t* p_boid = boids_get(i);
+            int x = p_boid->pos.x / cellSize;
+            int y = p_boid->pos.y / cellSize;
+            Vector2 dir = {.x=2,.y=0};
+            dir = Vector2Rotate(dir,MapValue(perlin_noise2d(x,y,freq,4),0.0,1.0,0.0,359));
+            p_boid->a.x = dir.x;
+            p_boid->a.y = dir.y;
+           steering_seek(p_boid,&mousePos);
+            steering_flee(p_boid,&mousePos);
+            boid_update(p_boid);
+
         }
 
         // Draw
@@ -89,21 +102,17 @@ int main(void)
             boid_t* p_boid = boids_get(i);
             boid_draw(p_boid);
             boid_check_screen_bounds(boids_get(i),screenWidth,screenHeight);
-            int x = p_boid->pos.x / cellSize;
-            int y = p_boid->pos.y / cellSize;
-            Vector2 dir = {.x=1,.y=0};
-             dir = Vector2Rotate(dir,MapValue(perlin_noise2d(x,y,freq,4),0.0,1.0,0.0,359));
-            p_boid->a.x = dir.x;
-            p_boid->a.y = dir.y;
+
 //            printf("[%d] => {%.2f,%.2f}{%.2f,%.2f}\n",i,p_boid->v.x,p_boid->v.y,p_boid->a.x,p_boid->a.y);
 //            //printf("[%d] => {%.2f,%.2f} , {%.2f,%.2f}\n",i,p_boid->pos.x,p_boid->pos.y,p_boid->v.x,p_boid->v.y);
         }
-        Vector2 mousePos = GetMousePosition();
+
         DrawText(TextFormat("MOUSE(%.2f,%.2f)",mousePos.x,mousePos.y),50,40,18,BLACK);
-        for (int i = 0; i < boids_count(); ++i) {
-            boid_t *p_boid = boids_get(i);
-            DrawLineV(p_boid->pos,mousePos,DARKGREEN);
-        }
+//        for (int i = 0; i < boids_count(); ++i) {
+//            boid_t *p_boid = boids_get(i);
+//            DrawLineV(p_boid->pos,mousePos,DARKGREEN);
+////            steering_seek(p_boid,&mousePos);
+//        }
 
         EndDrawing();
 

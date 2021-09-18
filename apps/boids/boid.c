@@ -8,7 +8,7 @@
 
 #include "utils.h"
 
-const float VMAX = 2.0;
+const float VMAX = 4.0;
 
 void boid_update(boid_t *p_boid) {
     p_boid->v = Vector2Add(p_boid->a,p_boid->v);
