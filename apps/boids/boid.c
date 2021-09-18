@@ -6,8 +6,14 @@
 #include "raylib.h"
 #include "raymath.h"
 
+#include "utils.h"
+
+const float VMAX = 2.0;
 
 void boid_update(boid_t *p_boid) {
+    p_boid->v = Vector2Add(p_boid->a,p_boid->v);
+    p_boid->v.x = ConstrainValue(p_boid->v.x,-VMAX,VMAX);
+    p_boid->v.y = ConstrainValue(p_boid->v.y,-VMAX,VMAX);
     p_boid->pos = Vector2Add(p_boid->pos,p_boid->v);
 }
 

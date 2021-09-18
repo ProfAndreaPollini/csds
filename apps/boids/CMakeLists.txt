@@ -28,6 +28,6 @@ if (NOT raylib_FOUND)
 endif()
 
 
-add_executable(boids main.c boid.c boids.c)
+add_executable(boids main.c boid.c boids.c perlin.c utils.c)
 target_link_libraries(boids csds raylib)
 

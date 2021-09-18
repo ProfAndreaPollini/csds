@@ -5,23 +5,33 @@
 #include "csds.h"
 
 
-
-
 #define RAYMATH_IMPLEMENTATION
 #include "raylib.h"
 #include "raymath.h"
 #define RAYGUI_IMPLEMENTATION
 #define RAYGUI_SUPPORT_ICONS
+
+
 #include "extras/raygui.h"
 
 #include "boid.h"
 #include "boids.h"
+#include "perlin.h"
+#include "utils.h"
 int main(void)
 {
     // Initialization
     //--------------------------------------------------------------------------------------
     const int screenWidth = 800;
     const int screenHeight = 450;
+
+    const int cellSize = 10;
+
+    const int cols = screenWidth/cellSize;
+    const int rows = screenHeight/cellSize;
+
+    double freq = 0.0001;
+    const double FREQ_INCREMENT = 0.0001;
 
     boids_init();
 
@@ -54,9 +64,20 @@ int main(void)
 
         ClearBackground(RAYWHITE);
 
+        for (int y = 0; y < rows; ++y) {
+            for (int x = 0; x < cols; ++x) {
+                Vector2 pos = {.x=x,.y=y};
+                Vector2 dir = {.x=1,.y=0};
+
+                dir = Vector2Rotate(dir,MapValue(perlin_noise2d(x,y,freq,4),0.0,1.0,0.0,359));
+                DrawLineV(Vector2Scale(pos,cellSize), Vector2Scale(Vector2Add(pos,dir),cellSize),GRAY);
+//               // DrawCircle(x*cellSize,y*cellSize,4* perlin_noise2d(x,y,0.1,4),RED);
+            }
+        }
+
 //        DrawText("Congrats! You created your first window!", 190, 200, 20, LIGHTGRAY);
 //        DrawText(TextFormat("(%d,%d)",boids_get(0)->pos->x,boids_get(0)->pos.y), 190, 200, 20,BLACK);
-        DrawText(TextFormat(" BOIDS = %d",boids_count()),100,80,18,BLACK);
+        DrawText(TextFormat(" BOIDS = %d",boids_count()),100,80,14,BLACK);
          if(GuiButton((Rectangle){.x=100,.y=100, .width=30,.height=30},"+")) {
             boids_add(Vector2Zero());
         }
@@ -68,10 +89,25 @@ int main(void)
             boid_t* p_boid = boids_get(i);
             boid_draw(p_boid);
             boid_check_screen_bounds(boids_get(i),screenWidth,screenHeight);
+            int x = p_boid->pos.x / cellSize;
+            int y = p_boid->pos.y / cellSize;
+            Vector2 dir = {.x=1,.y=0};
+             dir = Vector2Rotate(dir,MapValue(perlin_noise2d(x,y,freq,4),0.0,1.0,0.0,359));
+            p_boid->a.x = dir.x;
+            p_boid->a.y = dir.y;
+//            printf("[%d] => {%.2f,%.2f}{%.2f,%.2f}\n",i,p_boid->v.x,p_boid->v.y,p_boid->a.x,p_boid->a.y);
 //            //printf("[%d] => {%.2f,%.2f} , {%.2f,%.2f}\n",i,p_boid->pos.x,p_boid->pos.y,p_boid->v.x,p_boid->v.y);
+        }
+        Vector2 mousePos = GetMousePosition();
+        DrawText(TextFormat("MOUSE(%.2f,%.2f)",mousePos.x,mousePos.y),50,40,18,BLACK);
+        for (int i = 0; i < boids_count(); ++i) {
+            boid_t *p_boid = boids_get(i);
+            DrawLineV(p_boid->pos,mousePos,DARKGREEN);
         }
 
         EndDrawing();
+
+        freq += FREQ_INCREMENT;
         //----------------------------------------------------------------------------------
     }
 
@@ -82,3 +118,5 @@ int main(void)
 
     return 0;
 }
+
+
