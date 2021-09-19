@@ -58,15 +58,9 @@ csds_list_item_t* csds_list_append(csds_list_t* list)
 
     if(list->size == 0) {
         list->p_head = new_element;
-
     }  else {
-        csds_list_item_t *current = list->p_head;
-        while (current->p_next != NULL) {
-            current = current->p_next;
-        }
-        current->p_next = new_element;
+        list->p_tail->p_next = new_element;
     }
-
 
     list->size++;
     list->p_tail = new_element;
