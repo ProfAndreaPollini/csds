@@ -19,6 +19,18 @@
 #include "perlin.h"
 #include "utils.h"
 #include "steering.h"
+#include "app_config.h"
+
+void target_draw(boid_t *p_target) {
+    Vector2 base_dir = Vector2Normalize(Vector2Rotate(p_target->v,90));
+    Vector2 v1 = Vector2Add(p_target->pos, Vector2Scale(base_dir,5));
+    Vector2 v2 = Vector2Add(p_target->pos, Vector2Scale(Vector2Rotate(base_dir,180),5));
+    Vector2 v3 = Vector2Add(p_target->pos,Vector2Scale(Vector2Normalize(p_target->v),15));
+
+    //DrawTriangle(v1,v3,v2,BLUE);
+    DrawCircleV(p_target->pos,5,BLUE);
+}
+
 
 int main(void)
 {
@@ -35,10 +47,17 @@ int main(void)
     double freq = 0.0001;
     const double FREQ_INCREMENT = 0.0001;
 
-    boids_init();
+ app_config_t app_config={
+         .mouse_as_target = FALSE, // if true use 'target'
+         .use_flee = FALSE,
+         .use_seek = FALSE
+ };
+
+
+boids_init();
 
     boids_add(Vector2Zero());
-    boid_t boid={
+    boid_t target={
             .pos = (Vector2){ .x=200,.y=200},
             .v = Vector2Rotate(Vector2Normalize(Vector2One()), GetRandomValue(0,359)),
             .a = Vector2Zero()
@@ -65,11 +84,28 @@ int main(void)
             dir = Vector2Rotate(dir,MapValue(perlin_noise2d(x,y,freq,4),0.0,1.0,0.0,359));
             p_boid->a.x = dir.x;
             p_boid->a.y = dir.y;
-           steering_seek(p_boid,&mousePos);
-            steering_flee(p_boid,&mousePos);
+            boid_check_screen_bounds(p_boid,screenWidth,screenHeight);
             boid_update(p_boid);
-
+            if (app_config.mouse_as_target) {
+                if (app_config.use_seek)steering_seek(p_boid, &mousePos);
+                if (app_config.use_flee)steering_flee(p_boid, &mousePos);
+            } else {
+                if (app_config.use_seek)steering_seek(p_boid, &target.pos);
+                if (app_config.use_flee)steering_flee(p_boid, &target.pos);
+            }
         }
+
+        //
+        // target update
+        //
+        Vector2 target_dir = {.x=2,.y=0};
+        int target_noise_cell_x = target.pos.x / cellSize;
+        int target_noise_cell_y = target.pos.y / cellSize;
+        target_dir = Vector2Rotate(target_dir,MapValue(perlin_noise2d(target_noise_cell_x,target_noise_cell_y,freq,4),0.0,1.0,0.0,359));
+        target.a.x = target_dir.x;
+        target.a.y = target_dir.y;
+        boid_update(&target);
+        boid_check_screen_bounds(&target,screenWidth,screenHeight);
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -97,17 +133,22 @@ int main(void)
         if(GuiButton((Rectangle){.x=135,.y=100, .width=30,.height=30},"-")){
             boids_remove();
         }
-//        boid_draw(&boid);
+        // app settings
+        app_config.mouse_as_target = GuiToggle((Rectangle){.x=135,.y=120, .width=80,.height=20},"mouse as target?",app_config.mouse_as_target);
+        app_config.use_seek = GuiToggle((Rectangle){.x=135,.y=140, .width=80,.height=20},"seek",app_config.use_seek);
+        app_config.use_flee = GuiToggle((Rectangle){.x=135,.y=160, .width=80,.height=20},"flee",app_config.use_flee);
+
         for (int i = 0; i < boids_count(); ++i) {
             boid_t* p_boid = boids_get(i);
             boid_draw(p_boid);
-            boid_check_screen_bounds(boids_get(i),screenWidth,screenHeight);
-
-//            printf("[%d] => {%.2f,%.2f}{%.2f,%.2f}\n",i,p_boid->v.x,p_boid->v.y,p_boid->a.x,p_boid->a.y);
-//            //printf("[%d] => {%.2f,%.2f} , {%.2f,%.2f}\n",i,p_boid->pos.x,p_boid->pos.y,p_boid->v.x,p_boid->v.y);
         }
 
-        DrawText(TextFormat("MOUSE(%.2f,%.2f)",mousePos.x,mousePos.y),50,40,18,BLACK);
+        // target draw
+
+        target_draw(&target);
+
+
+        //DrawText(TextFormat("MOUSE(%.2f,%.2f)",mousePos.x,mousePos.y),50,40,18,BLACK);
 //        for (int i = 0; i < boids_count(); ++i) {
 //            boid_t *p_boid = boids_get(i);
 //            DrawLineV(p_boid->pos,mousePos,DARKGREEN);
